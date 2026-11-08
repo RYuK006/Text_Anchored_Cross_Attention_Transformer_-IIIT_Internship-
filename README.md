@@ -3,6 +3,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg)](https://pytorch.org/)
 [![Dataset](https://img.shields.io/badge/Benchmark-CMU--MOSEI-brightgreen.svg)](http://multicomp.cs.cmu.edu/resources/cmu-mosei-dataset/)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Datasets-yellow)](https://huggingface.co/datasets/Aaron006/Text-Anchored-Transformer-Data)
 [![Research](https://img.shields.io/badge/IIIT--Kottayam-iINT--2026-orange.svg)](https://www.iiitkottayam.ac.in/)
 [![Author](https://img.shields.io/badge/Author-Aaron%20Alex%20Mathew-purple.svg)](https://www.linkedin.com/in/aaron-alex-mathew)
 
@@ -115,14 +116,19 @@ This project investigates whether a **Cross-Attention Transformer anchored speci
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start & Reproduction
 
-### 1. Environment Setup
+Clone the repository and automatically download the dataset in one go:
 
 ```bash
 git clone https://github.com/RYuK006/Text_Anchored_Cross_Attention_Transformer_-IIIT_Internship-.git
 cd Text_Anchored_Cross_Attention_Transformer_-IIIT_Internship-
+python src/data/download_data.py
+```
 
+### 1. Environment Setup
+
+```bash
 # Create virtual environment
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
@@ -131,17 +137,12 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Dataset Preparation
+### 2. Dataset Access (Hugging Face Backup)
 
-Preprocessed and aligned CMU-MOSEI features can be obtained in either of two ways:
+The aligned preprocessed datasets (`mosei_senti_data.pkl`, `mosei_senti_data_noalign.pkl`, `iemocap_data.pkl`) are hosted on Hugging Face:
+🔗 **[Aaron006/Text-Anchored-Transformer-Data](https://huggingface.co/datasets/Aaron006/Text-Anchored-Transformer-Data)**
 
-**Option A (Automated Python Downloader - Hugging Face & Dropbox Fallback):**
-```bash
-python src/data/download_data.py
-```
-
-**Option B (Direct Hugging Face Hub Download):**
-The datasets are permanently backed up on Hugging Face at [`Aaron006/Text-Anchored-Transformer-Data`](https://huggingface.co/datasets/Aaron006/Text-Anchored-Transformer-Data):
+You can download individual files via Python:
 ```python
 from huggingface_hub import hf_hub_download
 
@@ -152,21 +153,22 @@ hf_hub_download(
     repo_type="dataset"
 )
 ```
-*(Place `mosei_senti_data.pkl` in the `data/` directory).*
 
-### 3. Run Experiments
+*(Alternatively, `python src/data/download_data.py` pulls from Hugging Face automatically with fallback to the CMU Dropbox archive).*
 
-To train and evaluate the optimal model ($H=16$, $d=128$):
+### 3. Running Models & Visualizations
+
+To evaluate the best trained 16-head model ($80.03\%$ Acc, $0.8687$ F1):
 ```bash
 python run_best.py
 ```
 
-To reproduce all 11 baseline, ablation, and hyperparameter experiments:
+To run the full 11-experiment ablation and parameter sweep:
 ```bash
 python run_experiments.py
 ```
 
-To generate research visualizations:
+To generate publication figures:
 ```bash
 python viz_attention_heatmaps.py
 python viz_alignment_maps.py
@@ -182,4 +184,3 @@ python viz_latency_accuracy.py
 * **Dr. Anu Maria Sebastian** (Mentor) — Department of Computer Science & Engineering, Indian Institute of Information Technology (IIIT) Kottayam, Kerala, India (`anumaria@iiitkottayam.ac.in`)
 
 Developed under the **iINT-2026 Internship Programme** at **IIIT Kottayam**.
-
