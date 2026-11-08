@@ -1,0 +1,473 @@
+--- run_experiments.py ---
+import os
+import sys
+import pandas as pd
+import torch
+
+# Ensure current directory is in python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from src.data.dataloader import get_dataloaders
+from src.models.baseline_models import EarlyFusionModel, LateFusionModel
+from src.models.transformer_fusion import TextAnchoredCrossAttentionTransformer
+from src.training.train import train_model
+
+def run_experiment(exp_id, desc, model, train_loader, valid_loader, test_loader, epochs, lr, device, save_name):
+    print(f"\n{'='*50}\nStarting Experiment {exp_id}: {desc}\n{'='*50}")
+    metrics = train_model(
+        model=model,
+        train_loader=train_loader,
+        valid_loader=valid_loader,
+        test_loader=test_loader,
+        epochs=epochs,
+        lr=lr,
+        device=device,
+        save_path=f"data/{save_name}.pt"
+    )
+    return {
+        "Experiment": exp_id,
+        "Description": desc,
+        "MAE": metrics["mae"],
+        "Binary Accuracy": metrics["accuracy"],
+        "Weighted F1": metrics["f1"],
+        "Pearson r": metrics["corr"]
+    }
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test-mode", action="store_true", help="Run 1 epoch only for quick testing")
+    args = parser.parse_args()
+
+    # Use mosei dataset as it is confirmed to be available locally
+    dataset = "mosei"  
+    batch_size = 32
+    epochs = 1 if args.test_mode else 20
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    print(f"Loading data for {dataset}...")
+    try:
+        train_loader, valid_loader, test_loader = get_dataloaders(dataset_name=dataset, data_dir="data", batch_size=batch_size)
+    except Exception as e:
+        print(f"Failed to load data: {e}")
+        return
+
+    sample_batch = next(iter(train_loader))
+    text_dim = sample_batch['text'].shape[-1]
+    audio_dim = sample_batch['audio'].shape[-1]
+    vision_dim = sample_batch['vision'].shape[-1]
+    
+    results = []
+
+    # Phase 1: Baseline Comparison
+    print("\n>>> Phase 1: Baseline Comparison")
+    
+    # Early Fusion
+    model_early = EarlyFusionModel(text_dim, audio_dim, vision_dim, hidden_dim=128, dropout=0.2)
+    results.append(run_experiment("1A", "Early Fusion", model_early, train_loader, valid_loader, test_loader, epochs, 1e-3, device, "early_best"))
+
+    # Late Fusion
+    model_late = LateFusionModel(text_dim, audio_dim, vision_dim, hidden_dim=128, dropout=0.2)
+    results.append(run_experiment("1B", "Late Fusion", model_late, train_loader, valid_loader, test_loader, epochs, 1e-3, device, "late_best"))
+
+    # Cross-Attention
+    model_tf = TextAnchoredCrossAttentionTransformer(text_dim, audio_dim, vision_dim, embed_dim=128, num_heads=4, hidden_dim=128, dropout=0.2)
+    results.append(run_experiment("1C", "Cross-Attention (Proposed)", model_tf, train_loader, valid_loader, test_loader, epochs, 5e-4, device, "tf_best"))
+
+    # Phase 2: Ablation Study
+    print("\n>>> Phase 2: Ablation Study")
+    
+    # Text Only
+    model_ab_text = TextAnchoredCrossAttentionTransformer(text_dim, audio_dim, vision_dim, embed_dim=128, num_heads=4, hidden_dim=128, dropout=0.2)
+    model_ab_text.ablate_audio = True
+    model_ab_text.ablate_vision = True
+    results.append(run_experiment("2A", "Text Only", model_ab_text, train_loader, valid_loader, test_loader, epochs, 5e-4, device, "tf_text_only"))
+
+    # Text + Audio
+    model_ab_ta = TextAnchoredCrossAttentionTransformer(text_dim, audio_dim, vision_dim, embed_dim=128, num_heads=4, hidden_dim=128, dropout=0.2)
+    model_ab_ta.ablate_vision = True
+    results.append(run_experiment("2B", "Text + Audio", model_ab_ta, train_loader, valid_loader, test_loader, epochs, 5e-4, device, "tf_text_audio"))
+
+    # Text + Vision
+    model_ab_tv = TextAnchoredCrossAttentionTransformer(text_dim, audio_dim, vision_dim, embed_dim=128, num_heads=4, hidden_dim=128, dropout=0.2)
+    model_ab_tv.ablate_audio = True
+    results.append(run_experiment("2C", "Text + Vision", model_ab_tv, train_loader, valid_loader, test_loader, epochs, 5e-4, device, "tf_text_vision"))
+
+    # Text + Audio + Vision
+    model_ab_full = TextAnchoredCrossAttentionTransformer(text_dim, audio_dim, vision_dim, embed_dim=128, num_heads=4, hidden_dim=128, dropout=0.2)
+    results.append(run_experiment("2D", "Text + Audio + Vision", model_ab_full, train_loader, valid_loader, test_loader, epochs, 5e-4, device, "tf_full"))
+
+    # Phase 3: Hyperparameter Tuning
+    print("\n>>> Phase 3: Hyperparameter Tuning")
+    
+    for heads in [8, 16]:
+        model_tune = TextAnchoredCrossAttentionTransformer(text_dim, audio_dim, vision_dim, embed_dim=128, num_heads=heads, hidden_dim=128, dropout=0.2)
+        results.append(run_experiment(f"3A (H={heads})", f"Num Heads = {heads}", model_tune, train_loader, valid_loader, test_loader, epochs, 5e-4, device, f"tf_h{heads}"))
+
+    for drop in [0.1, 0.5]:
+        model_tune = TextAnchoredCrossAttentionTransformer(text_dim, audio_dim, vision_dim, embed_dim=128, num_heads=4, hidden_dim=128, dropout=drop)
+        results.append(run_experiment(f"3B (D={drop})", f"Dropout = {drop}", model_tune, train_loader, valid_loader, test_loader, epochs, 5e-4, device, f"tf_d{str(drop).replace('.','')}"))
+
+    # Save to CSV
+    df = pd.DataFrame(results)
+    df.to_csv("experiment_results.csv", index=False)
+    
+    print("\n\n" + "="*50)
+    print("ALL EXPERIMENTS COMPLETED")
+    print("="*50)
+    print(df.to_string(index=False))
+
+if __name__ == "__main__":
+    main()
+
+
+--- src/training/train.py ---
+import os
+import sys
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.metrics import accuracy_score, f1_score
+from scipy.stats import pearsonr
+from tqdm import tqdm
+
+# Add parent directory to path to allow importing src
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from src.data.dataloader import get_dataloaders
+from src.models.baseline_models import EarlyFusionModel, LateFusionModel
+from src.models.transformer_fusion import TextAnchoredCrossAttentionTransformer
+
+def calculate_metrics(predictions, labels):
+    """
+    Calculates research-standard evaluation metrics for CMU-MOSI:
+    - Mean Absolute Error (MAE): Lower is better
+    - Pearson Correlation (r): Higher is better
+    - Binary Accuracy (Acc-2): Sentiment classification (Positive > 0 vs Negative <= 0)
+    - F1 Score: Binary F1 score
+    """
+    mae = np.mean(np.abs(predictions - labels))
+    
+    # Pearson Correlation
+    try:
+        corr, _ = pearsonr(predictions, labels)
+    except Exception:
+        corr = 0.0
+        
+    # Binary Classification Metrics (checking sign of sentiment score)
+    binary_preds = (predictions >= 0).astype(int)
+    binary_labels = (labels >= 0).astype(int)
+    
+    acc = accuracy_score(binary_labels, binary_preds)
+    f1 = f1_score(binary_labels, binary_preds, average='binary', zero_division=0)
+    
+    return {
+        "mae": mae,
+        "corr": corr,
+        "accuracy": acc,
+        "f1": f1
+    }
+
+def train_model(model, train_loader, valid_loader, test_loader, epochs=20, lr=1e-3, device="cpu", save_path="best_model.pt"):
+    print(f"Training on device: {device}")
+    model.to(device)
+    
+    # Loss function and Optimizer
+    criterion = nn.L1Loss() # MAE loss is standard for sentiment regression
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr, total_steps=epochs * len(train_loader), pct_start=0.1)
+    
+    best_valid_loss = float('inf')
+    
+    for epoch in range(1, epochs + 1):
+        # 1. Training Phase
+        model.train()
+        train_loss = 0.0
+        
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch}/{epochs} [Train]"):
+            text = batch['text'].to(device)
+            audio = batch['audio'].to(device)
+            vision = batch['vision'].to(device)
+            labels = batch['label'].to(device)
+            
+            optimizer.zero_grad()
+            outputs = model(text, audio, vision)
+            
+            # Squeeze output and labels to match shape
+            if outputs.shape[-1] == 1:
+                outputs = outputs.squeeze(-1)
+            if len(labels.shape) > 1 and labels.shape[-1] == 1:
+                labels = labels.squeeze(-1)
+                
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
+            
+            train_loss += loss.item() * text.size(0)
+            
+        train_loss /= len(train_loader.dataset)
+        
+        # 2. Validation Phase
+        model.eval()
+        valid_loss = 0.0
+        all_preds = []
+        all_labels = []
+        
+        with torch.no_grad():
+            for batch in valid_loader:
+                text = batch['text'].to(device)
+                audio = batch['audio'].to(device)
+                vision = batch['vision'].to(device)
+                labels = batch['label'].to(device)
+                
+                outputs = model(text, audio, vision)
+                if outputs.shape[-1] == 1:
+                    outputs = outputs.squeeze(-1)
+                if len(labels.shape) > 1 and labels.shape[-1] == 1:
+                    labels = labels.squeeze(-1)
+                    
+                loss = criterion(outputs, labels)
+                valid_loss += loss.item() * text.size(0)
+                
+                all_preds.extend(outputs.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
+                
+        valid_loss /= len(valid_loader.dataset)
+        
+        # Calculate validation metrics
+        val_metrics = calculate_metrics(np.array(all_preds), np.array(all_labels))
+        print(f"Epoch {epoch} Results:")
+        print(f"  Train Loss: {train_loss:.4f} | Valid Loss: {valid_loss:.4f}")
+        print(f"  Valid Acc: {val_metrics['accuracy']:.4f} | Valid F1: {val_metrics['f1']:.4f} | Valid MAE: {val_metrics['mae']:.4f} | Valid Corr: {val_metrics['corr']:.4f}")
+        
+        # Save best model
+        if valid_loss < best_valid_loss:
+            best_valid_loss = valid_loss
+            torch.save(model.state_dict(), save_path)
+            print(f"  => Saved new best model checkpoint to {save_path}")
+            
+    # 3. Test Phase (Load best model and evaluate)
+    print("\n=== FINAL TEST EVALUATION ===")
+    if os.path.exists(save_path):
+        model.load_state_dict(torch.load(save_path))
+        print(f"Loaded best model checkpoint from {save_path}")
+        
+    model.eval()
+    test_preds = []
+    test_labels = []
+    
+    with torch.no_grad():
+        for batch in test_loader:
+            text = batch['text'].to(device)
+            audio = batch['audio'].to(device)
+            vision = batch['vision'].to(device)
+            labels = batch['label'].to(device)
+            
+            outputs = model(text, audio, vision)
+            if outputs.shape[-1] == 1:
+                outputs = outputs.squeeze(-1)
+            if len(labels.shape) > 1 and labels.shape[-1] == 1:
+                labels = labels.squeeze(-1)
+                
+            test_preds.extend(outputs.cpu().numpy())
+            test_labels.extend(labels.cpu().numpy())
+            
+    test_metrics = calculate_metrics(np.array(test_preds), np.array(test_labels))
+    print("Test Set Metrics:")
+    print(f"  MAE:  {test_metrics['mae']:.4f} (Lower is better)")
+    print(f"  Corr: {test_metrics['corr']:.4f} (Higher is better)")
+    print(f"  Acc:  {test_metrics['accuracy']:.4f} (Higher is better)")
+    print(f"  F1:   {test_metrics['f1']:.4f} (Higher is better)")
+    
+    return test_metrics
+
+def main():
+    # Configuration
+    dataset = "mosei"
+    batch_size = 32
+    epochs = 20
+    lr = 5e-4
+    model_type = "transformer" # Choice: "early", "late", "transformer"
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Initializing Multimodal Experiment: Dataset={dataset.upper()} | Model={model_type.upper()}")
+    
+    # Load Data Loaders
+    try:
+        train_loader, valid_loader, test_loader = get_dataloaders(
+            dataset_name=dataset, 
+            data_dir="data", 
+            batch_size=batch_size
+        )
+    except FileNotFoundError as e:
+        print(f"\n[Warning] {e}")
+        print("Please place the downloaded 'mosi_data.pkl' file in the 'data/' directory to run the training.")
+        return
+        
+    # Get input feature dimensions based on the dataset structure
+    # CMU-MOSI shapes are usually: Text=300 (GloVe) or 768 (BERT), Audio=5, Vision=20 (Facet) or 47 (OpenFace)
+    # Let's inspect a single batch to get dimensions automatically
+    sample_batch = next(iter(train_loader))
+    text_dim = sample_batch['text'].shape[-1]
+    audio_dim = sample_batch['audio'].shape[-1]
+    vision_dim = sample_batch['vision'].shape[-1]
+    print(f"Auto-detected feature dimensions: Text={text_dim}, Audio={audio_dim}, Vision={vision_dim}")
+    
+    # Initialize Model
+    if model_type == "early":
+        model = EarlyFusionModel(text_dim, audio_dim, vision_dim, hidden_dim=64, dropout=0.3)
+    elif model_type == "late":
+        model = LateFusionModel(text_dim, audio_dim, vision_dim, hidden_dim=64, dropout=0.3)
+    else:
+        model = TextAnchoredCrossAttentionTransformer(
+            text_dim=text_dim, 
+            audio_dim=audio_dim, 
+            vision_dim=vision_dim, 
+            embed_dim=128, 
+            num_heads=4, 
+            hidden_dim=128, 
+            dropout=0.2
+        )
+        
+    train_model(
+        model=model,
+        train_loader=train_loader,
+        valid_loader=valid_loader,
+        test_loader=test_loader,
+        epochs=epochs,
+        lr=lr,
+        device=device,
+        save_path=f"{model_type}_best_model.pt"
+    )
+
+if __name__ == "__main__":
+    main()
+
+
+--- src/models/transformer_fusion.py ---
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class CrossAttentionLayer(nn.Module):
+    """
+    A Cross-Attention layer where Modality A (e.g. Text) acts as the Query,
+    and Modality B (e.g. Audio or Vision) acts as the Key and Value.
+    """
+    def __init__(self, embed_dim, num_heads, dropout=0.1):
+        super(CrossAttentionLayer, self).__init__()
+        # PyTorch MultiheadAttention expects sequence dimension as the first dimension 
+        # when batch_first=False, but we'll use batch_first=True for simplicity.
+        self.mha = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, dropout=dropout, batch_first=True)
+        self.layernorm = nn.LayerNorm(embed_dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, query, key, value):
+        # query (Modality A): [batch_size, seq_len_A, embed_dim]
+        # key (Modality B): [batch_size, seq_len_B, embed_dim]
+        # value (Modality B): [batch_size, seq_len_B, embed_dim]
+        
+        # Compute cross-attention
+        attn_output, _ = self.mha(query, key, value)
+        
+        # Residual connection and layer normalization
+        out = self.layernorm(query + self.dropout(attn_output))
+        return out
+
+
+class TextAnchoredCrossAttentionTransformer(nn.Module):
+    """
+    Our proposed state-of-the-art Text-Anchored Cross-Attention Transformer.
+    Uses text as the stable semantic anchor (Query) to query audio (Keys/Values) 
+    and vision (Keys/Values) modalities. Combines the outputs and classifies.
+    """
+    def __init__(self, text_dim, audio_dim, vision_dim, embed_dim=128, num_heads=4, hidden_dim=128, output_dim=1, dropout=0.2):
+        super(TextAnchoredCrossAttentionTransformer, self).__init__()
+        
+        # 1. Modality Projection Layers (Linear projections to align dimensions)
+        self.proj_text = nn.Linear(text_dim, embed_dim)
+        self.proj_audio = nn.Linear(audio_dim, embed_dim)
+        self.proj_vision = nn.Linear(vision_dim, embed_dim)
+        
+        self.pre_norm_text = nn.LayerNorm(embed_dim)
+        self.pre_norm_audio = nn.LayerNorm(embed_dim)
+        self.pre_norm_vision = nn.LayerNorm(embed_dim)
+        
+        # Positional Encoding for sequence order
+        self.pos_encoder = nn.Parameter(torch.zeros(1, 100, embed_dim)) # supports up to sequence length 100
+        
+        # 2. Cross-Attention Layers
+        # Text query attends to Audio key/value
+        self.text_audio_cross = CrossAttentionLayer(embed_dim=embed_dim, num_heads=num_heads, dropout=dropout)
+        
+        # Text query attends to Vision key/value
+        self.text_vision_cross = CrossAttentionLayer(embed_dim=embed_dim, num_heads=num_heads, dropout=dropout)
+        
+        # 3. Self-Attention Block for the fused representations
+        self.self_attn = nn.MultiheadAttention(embed_dim=embed_dim * 2, num_heads=num_heads, dropout=dropout, batch_first=True)
+        self.self_attn_norm = nn.LayerNorm(embed_dim * 2)
+        
+        # 4. Final Classification Head
+        self.fc1 = nn.Linear(embed_dim * 2, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, text, audio, vision):
+        # text: [batch_size, seq_len, text_dim]
+        # audio: [batch_size, seq_len, audio_dim]
+        # vision: [batch_size, seq_len, vision_dim]
+        
+        batch_size, seq_len, _ = text.shape
+        
+        # Step 1: Project modalities to a shared embedding dimension
+        t_proj = self.proj_text(text)      # [batch_size, seq_len, embed_dim]
+        a_proj = self.proj_audio(audio)    # [batch_size, seq_len, embed_dim]
+        v_proj = self.proj_vision(vision)  # [batch_size, seq_len, embed_dim]
+        
+        # Step 2: Add Positional Encodings
+        # Add position embeddings up to the current sequence length
+        pos = self.pos_encoder[:, :seq_len, :]
+        t_proj = t_proj + pos
+        a_proj = a_proj + pos
+        v_proj = v_proj + pos
+        
+        t_proj = self.pre_norm_text(t_proj)
+        a_proj = self.pre_norm_audio(a_proj)
+        v_proj = self.pre_norm_vision(v_proj)
+        
+        # Step 3: Text-Anchored Cross-Attention
+        # Text attends to Audio
+        if getattr(self, 'ablate_audio', False):
+            t_audio_fused = t_proj
+        else:
+            t_audio_fused = self.text_audio_cross(query=t_proj, key=a_proj, value=a_proj) # [batch_size, seq_len, embed_dim]
+            t_audio_fused = t_audio_fused + t_proj
+        
+        # Text attends to Vision
+        if getattr(self, 'ablate_vision', False):
+            t_vision_fused = t_proj
+        else:
+            t_vision_fused = self.text_vision_cross(query=t_proj, key=v_proj, value=v_proj) # [batch_size, seq_len, embed_dim]
+            t_vision_fused = t_vision_fused + t_proj
+        
+        # Step 4: Combine the fused features (Concatenation)
+        # Result shape: [batch_size, seq_len, embed_dim * 2]
+        fused = torch.cat((t_audio_fused, t_vision_fused), dim=-1)
+        
+        # Step 5: Self-Attention on fused representation to capture joint relations
+        attn_out, _ = self.self_attn(fused, fused, fused)
+        fused_attn = self.self_attn_norm(fused + self.dropout(attn_out))
+        
+        # Step 6: Mean Pooling across sequence dimension
+        pooled = torch.mean(fused_attn, dim=1) # [batch_size, embed_dim * 2]
+        
+        # Step 7: Classification Head
+        out = F.relu(self.fc1(self.dropout(pooled)))
+        out = self.fc2(self.dropout(out)) # [batch_size, output_dim]
+        
+        return out
+
+
