@@ -1,0 +1,86 @@
+{
+  "files": {
+    "code": [
+      "check_features.py",
+      "extract_docx.py",
+      "fetch_chats.py",
+      "recover_transcripts.py",
+      "run_best.py",
+      "run_ensemble.py",
+      "run_experiments.py",
+      "run_pipeline.py",
+      "src/__init__.py",
+      "src/data/__init__.py",
+      "src/data/dataloader.py",
+      "src/data/download_data.py",
+      "src/models/__init__.py",
+      "src/models/baseline_models.py",
+      "src/models/transformer_fusion.py",
+      "src/training/__init__.py",
+      "src/training/train.py",
+      "src/utils/__init__.py",
+      "viz_alignment_maps.py",
+      "viz_attention_heatmaps.py",
+      "viz_embedding_space.py",
+      "viz_latency_accuracy.py"
+    ],
+    "document": [
+      "CLAUDE.md",
+      "chat_0.txt",
+      "chat_1.txt",
+      "multimodal_sentiment_analysis_review.md",
+      "recovered_chat_266c7f89-0286-4987-abf9-ae5bc12c2a43.md",
+      "recovered_chat_dc31c4e7-c90d-4741-a5a4-e456c650f6e8.md",
+      "report_text.txt",
+      "requirements.txt",
+      "template_text.txt",
+      "updated_files.txt"
+    ],
+    "paper": [
+      "Structure_Diagrams/Untitled presentation (1).pdf",
+      "paper/New_IEEEtran_how-to.pdf",
+      "paper/bare_jrnl_new_sample4.pdf"
+    ],
+    "image": [
+      "paper/Author_no1.png",
+      "paper/attention_heatmaps.png",
+      "paper/cross_modal_alignment.png",
+      "paper/embedding_space_tsne.png",
+      "paper/latency_vs_accuracy.png",
+      "paper/system_architecture.jpg",
+      "visualizations/attention_heatmaps.png",
+      "visualizations/cross_modal_alignment.png",
+      "visualizations/embedding_space_tsne.png",
+      "visualizations/latency_vs_accuracy.png"
+    ],
+    "video": []
+  },
+  "total_files": 45,
+  "total_words": 199250,
+  "needs_graph": true,
+  "warning": null,
+  "skipped_sensitive": [
+    "Aaron Alex Mathew Report.docx [office conversion requires async - use pipeline]",
+    "Investigation_Results.docx [office conversion requires async - use pipeline]",
+    "Proposed_Solution.docx [office conversion requires async - use pipeline]",
+    "template/Transactions-template-and-instructions-on-how-to-create-your-article-formatted (4).docx [office conversion requires async - use pipeline]"
+  ],
+  "graphifyignore_patterns": 0,
+  "scope": {
+    "requested_mode": "auto",
+    "resolved_mode": "all",
+    "source": "default-auto",
+    "root": ".",
+    "git_root": ".",
+    "candidate_count": null,
+    "included_count": 45,
+    "excluded_untracked_count": 0,
+    "excluded_ignored_count": 0,
+    "excluded_sensitive_count": 0,
+    "missing_committed_count": 0,
+    "warnings": [
+      "Git repository has no HEAD; falling back to all scope."
+    ],
+    "recommendation": "Use --scope all or graphify.yaml inputs.corpus for a knowledge-base folder."
+  }
+}
