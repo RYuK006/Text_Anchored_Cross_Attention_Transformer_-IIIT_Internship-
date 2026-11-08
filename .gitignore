@@ -41,8 +41,13 @@ data/__MACOSX/
 # Binary Installers
 paper/*.msi
 
-# Operating System / Editor artifacts
+# Operating System / Editor artifacts & Lock files
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+~$*
+
+# Graphify Cache
+.graphify/cache/
+.graphify/needs_update
