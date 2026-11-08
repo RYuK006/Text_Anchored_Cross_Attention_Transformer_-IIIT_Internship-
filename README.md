@@ -133,9 +133,24 @@ pip install -r requirements.txt
 
 ### 2. Dataset Preparation
 
-Preprocessed and aligned CMU-MOSEI features can be obtained via:
+Preprocessed and aligned CMU-MOSEI features can be obtained in either of two ways:
+
+**Option A (Automated Python Downloader - Hugging Face & Dropbox Fallback):**
 ```bash
 python src/data/download_data.py
+```
+
+**Option B (Direct Hugging Face Hub Download):**
+The datasets are permanently backed up on Hugging Face at [`Aaron006/Text-Anchored-Transformer-Data`](https://huggingface.co/datasets/Aaron006/Text-Anchored-Transformer-Data):
+```python
+from huggingface_hub import hf_hub_download
+
+hf_hub_download(
+    repo_id="Aaron006/Text-Anchored-Transformer-Data",
+    filename="mosei_senti_data.pkl",
+    local_dir="data",
+    repo_type="dataset"
+)
 ```
 *(Place `mosei_senti_data.pkl` in the `data/` directory).*
 
