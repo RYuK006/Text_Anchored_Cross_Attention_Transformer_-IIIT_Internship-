@@ -1,0 +1,182 @@
+{
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/check_features.py": {
+    "mtime": 1781604984227.3792,
+    "hash": "9f11d07f65e845dc92fa964e02e0a650"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/extract_docx.py": {
+    "mtime": 1782920302528.598,
+    "hash": "d537c4f85d64a91bc77e91fbc07b8e10"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/fetch_chats.py": {
+    "mtime": 1779985137892.6445,
+    "hash": "0a9d3eb5ca6ac806e67cb38029f2f329"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/recover_transcripts.py": {
+    "mtime": 1780482482294.061,
+    "hash": "ddb5b40568e00bacadccbf3fd447c26b"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/run_best.py": {
+    "mtime": 1780819999455.7107,
+    "hash": "1548130de3faff178860741a06c8a229"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/run_ensemble.py": {
+    "mtime": 1780820679883.3474,
+    "hash": "f77c15eebfe826171391aac378379560"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/run_experiments.py": {
+    "mtime": 1780755119813.0435,
+    "hash": "c0152b34caacff6c09396e12b72aaec8"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/run_pipeline.py": {
+    "mtime": 1779977072631.1846,
+    "hash": "f07801795337814055f2133f4d466e42"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/__init__.py": {
+    "mtime": 1779976923560.684,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/data/__init__.py": {
+    "mtime": 1779976923560.684,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/data/dataloader.py": {
+    "mtime": 1780496720673.1704,
+    "hash": "848cf55b05843db2cfac42f70bd4da1a"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/data/download_data.py": {
+    "mtime": 1779977041805.6223,
+    "hash": "7fc4f4f5043621b497c8255f550a8c4a"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/models/__init__.py": {
+    "mtime": 1779976923562.3533,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/models/baseline_models.py": {
+    "mtime": 1779977055134.027,
+    "hash": "9b34d17abd80e44267191729e59a69a3"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/models/transformer_fusion.py": {
+    "mtime": 1781765088874.3684,
+    "hash": "aa12dacc6540dad1b3b9d349d264f1e4"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/training/__init__.py": {
+    "mtime": 1779976923563.152,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/training/train.py": {
+    "mtime": 1780819998520.3606,
+    "hash": "8a7e6a01987ee34eb94c72add02b3b69"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/src/utils/__init__.py": {
+    "mtime": 1779976923563.152,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/viz_alignment_maps.py": {
+    "mtime": 1781765490207.2683,
+    "hash": "bce135afeb194f20d07c0df20c000711"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/viz_attention_heatmaps.py": {
+    "mtime": 1781765090961.0337,
+    "hash": "3cc4eaa610a7c37766856cc91554e40e"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/viz_embedding_space.py": {
+    "mtime": 1781706462211.069,
+    "hash": "cbf7350e843152b8e646e2797d83379f"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/viz_latency_accuracy.py": {
+    "mtime": 1781678482943.8506,
+    "hash": "1ade05ca1c8c433633dd9220b1a467a3"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/CLAUDE.md": {
+    "mtime": 1783098401077.1472,
+    "hash": "774440ca3df8dcadaa8d346fac6c5e51"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/chat_0.txt": {
+    "mtime": 1779985178552.63,
+    "hash": "1bc30ff9fb0ee9614826473450a49c2b"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/chat_1.txt": {
+    "mtime": 1779985184418.0808,
+    "hash": "2e0b5fb14c0c1066406cdb5c5bc06fbf"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/multimodal_sentiment_analysis_review.md": {
+    "mtime": 1779088703768.6597,
+    "hash": "43ca637bcee7d48ab2c0bced8df03e6e"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/recovered_chat_266c7f89-0286-4987-abf9-ae5bc12c2a43.md": {
+    "mtime": 1780482504134.4492,
+    "hash": "c90dd4f28e944e4f1257d751d68c5d05"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/recovered_chat_dc31c4e7-c90d-4741-a5a4-e456c650f6e8.md": {
+    "mtime": 1780482504413.0933,
+    "hash": "1c7df2344a21453c3d2783e63f51137d"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/report_text.txt": {
+    "mtime": 1782920312309.5442,
+    "hash": "bd2fc5dc5a4bfaceb48a8e030c327c1e"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/requirements.txt": {
+    "mtime": 1779976681949.445,
+    "hash": "069b08966572db78d810adbe40b621ec"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/template_text.txt": {
+    "mtime": 1782920312308.5461,
+    "hash": "e652302eabf797423fa4e394943fd8ee"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/updated_files.txt": {
+    "mtime": 1780755133668.6582,
+    "hash": "242c85aaaa27c3ce0ad386e6fdeafc35"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/Structure_Diagrams/Untitled presentation (1).pdf": {
+    "mtime": 1779976328484.9336,
+    "hash": "b4316e1e9bec0771d4b1785bb1e0458f"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/paper/New_IEEEtran_how-to.pdf": {
+    "mtime": 1633070064000,
+    "hash": "240b10e0d03ceba01d4fb737599539ab"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/paper/bare_jrnl_new_sample4.pdf": {
+    "mtime": 1633068178000,
+    "hash": "7aba43916680582f4c14aec5c3f14208"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/paper/Author_no1.png": {
+    "mtime": 1778048223000,
+    "hash": "b6c246db55345983bccad70f4f8072d0"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/paper/attention_heatmaps.png": {
+    "mtime": 1781765365699.6482,
+    "hash": "3447962e0e3a4b411d276b6bfff6a227"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/paper/cross_modal_alignment.png": {
+    "mtime": 1781765549343.072,
+    "hash": "efe0f097a0ae7bc23bedd3c0c1ae681b"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/paper/embedding_space_tsne.png": {
+    "mtime": 1781706620951.7207,
+    "hash": "5b9aa8a6e11a762a343f68f040d0b5ff"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/paper/latency_vs_accuracy.png": {
+    "mtime": 1781679638634.974,
+    "hash": "0d4bf7bd3d85f853cd9e3135631f0bcc"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/paper/system_architecture.jpg": {
+    "mtime": 1779790037978.0374,
+    "hash": "e5cb39634f322e4e8bf9a8ccbae61157"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/visualizations/attention_heatmaps.png": {
+    "mtime": 1781765365699.6482,
+    "hash": "3447962e0e3a4b411d276b6bfff6a227"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/visualizations/cross_modal_alignment.png": {
+    "mtime": 1781765549343.072,
+    "hash": "efe0f097a0ae7bc23bedd3c0c1ae681b"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/visualizations/embedding_space_tsne.png": {
+    "mtime": 1781706620951.7207,
+    "hash": "5b9aa8a6e11a762a343f68f040d0b5ff"
+  },
+  "C:/Users/Aaron/Desktop/IIIT-Kottayam/visualizations/latency_vs_accuracy.png": {
+    "mtime": 1781679638634.974,
+    "hash": "0d4bf7bd3d85f853cd9e3135631f0bcc"
+  }
+}
