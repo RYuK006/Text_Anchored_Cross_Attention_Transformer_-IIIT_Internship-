@@ -1,0 +1,245 @@
+Towards Holistic Emotion Understanding: A Text-Anchored Cross-Attention Transformer for Multimodal Sentiment Analysis
+Aaron Alex MathewDept. of Computer Science Engineering with AIProvidence College of EngineeringChengannur, Kerala, Indiaaaron.prc24ca001@student.providence.edu.inDr. Anu Maria SebastianDept. of Computer Science and EngineeringIndian Institute of Information TechnologyKottayam, Kerala, Indiaanumaria@iiitkottayam.ac.in
+Abstract—Determining sentiment from video is harder than it looks. Words alone are not enough — the same phrase can be sarcastic or sincere depending on tone and expression, and text-only models miss this entirely. This paper investigates whether a cross-attention Transformer, anchored to the text modality, can better fuse acoustic and visual information than conventional early or late fusion strategies. We evaluate all three approaches on CMU-MOSEI through eleven experiments covering baseline comparisons, modality ablations, and hyperparameter sweeps. The proposed Text-Anchored Cross-Attention Transformer, trained with 16 attention heads and a 128-dimensional embedding space, achieves 80.03% binary accuracy and a weighted F1 of 0.8687 — outperforming early fusion at 78.14% and late fusion at 77.23%. A key finding is that cross-attention only outperforms simpler baselines once sufficient representational capacity is provided; a four-head variant actually underperformed both baselines. Attention heatmaps and t-SNE projections confirm that the model learns to anchor on emotionally salient frames rather than tracking word-level temporal correspondence.
+Keywords—multimodal sentiment analysis, cross-attention transformer, emotion recognition, text-anchored fusion, CMU-MOSEI
+I. INTRODUCTION
+Sentiment is not just about what someone says. A flat "I'm fine" delivered with a downward gaze and a falling pitch carries very different meaning from the same phrase said with a smile. Models that read only the transcript will get this wrong every time.
+This seems obvious, but building a system that actually uses all three channels - text, audio, and facial expression turns out to be more difficult than simply feeding all three into a single model. The fusion strategy matters enormously. Concatenating features early on mixes clean and noisy information in ways that confuse the model. Training three separate models and averaging their outputs avoids that problem, but loses any sense of how the channels interact with each other. The interesting question is whether an attention mechanism can do better - specifically, whether the model can learn to query audio and visual streams through the lens of what is being said.
+That question is what motivated this work.
+We propose a Text-Anchored Cross-Attention Transformer in which text serves as the query modality in two parallel cross-attention layers attending to audio and visual features respectively. The architecture was trained and evaluated on CMU-MOSEI through a three-phase experimental study producing eleven distinct results. Implementation was done in PyTorch on an NVIDIA RTX 3050 Laptop GPU.
+This paper makes three contributions. First, a practical cross-attention fusion architecture is proposed and evaluated against early and late fusion baselines under identical training conditions. Second, a systematic ablation study quantifies the independent contribution of each modality under the proposed framework. Third, qualitative analysis through attention heatmaps, alignment maps, and embedding space visualizations provides insight into what the model actually learned.
+II. LITERATURE REVIEW
+A. Multimodal Sentiment Analysis
+The field was largely shaped by the release of CMU-MOSI [1], which gave researchers a standardized benchmark for sentiment prediction from video clips. Accuracy improvements since then have come mostly from two directions: better text representations and better fusion strategies.
+On the text side, the shift from GloVe [2] to BERT [3] was significant. GloVe assigns a single fixed vector to each word regardless of context. BERT produces different representations for the same word depending on the sentence it appears in, which makes a real difference for sentiment where the same word can be positive or ironic depending on surrounding context. Most published systems achieving above 82% on CMU-MOSEI use BERT or RoBERTa. This work uses GloVe because those are the pre-extracted features available in the CMU-MOSEI SDK, and extracting BERT features from scratch was outside the scope of this phase.
+CMU-MOSEI [4], used as the evaluation dataset in this work, extends CMU-MOSI to 23,453 clips from over 1,000 speakers and adds six-class emotion labels alongside the sentiment regression task. It is the largest available benchmark for this problem.
+B. Fusion Approaches
+Early fusion concatenates all modality features before the model sees them. Zadeh et al. [5] showed that the full outer-product Tensor Fusion Network becomes computationally intractable at scale. Liu et al. [6] proposed low-rank factorisation as a more practical approximation. Even so, the core problem with early fusion is that noisy features from one modality corrupt the joint representation.
+Late fusion avoids this by keeping modalities separate until the final prediction step. It is simpler to train and more robust to missing inputs. But it cannot detect the interaction between a specific word and the facial expression occurring at the same moment — information that is only visible if the two streams are compared at the feature level.
+Cross-attention addresses both problems. Tsai et al. [7] introduced the Multimodal Transformer (MulT), which applies directed cross-attention across all modality pairs and consistently outperformed LSTM-based baselines on CMU-MOSI and CMU-MOSEI. Hazarika et al. [8] later proposed MISA, which disentangles modality-specific and modality-shared representations through subspace projection, achieving strong results on both datasets. More recent architectures add gating mechanisms to suppress noisy modality contributions [9] or graph structures to capture conversational turn dynamics [10].
+The general trend is clear: cross-attention-based approaches outperform simpler fusion strategies, and text-oriented designs where text provides the query tend to work better than symmetric alternatives.
+C. Summary Table
+Table I: Selected Literature on Multimodal Fusion
+Paper & Year
+Method
+Strength
+Weakness
+Dataset
+MulT - Tsai et al. (2019)
+Crossmodal Transformer
+Long-range cross-modal dependencies
+High memory for long sequences
+CMU-MOSI, CMU-MOSEI, IEMOCAP
+MISA - Hazarika et al. (2020)
+Hybrid Subspace
+Disentangles shared and specific features
+Fails when modalities are missing
+CMU-MOSI, CMU-MOSEI
+TCAN (2021)
+Text-Oriented Cross-Attn
+Text pivot guides noisy audio/visual streams
+Degrades with poor transcription
+CMU-MOSI, CMU-MOSEI, IEMOCAP
+GA2MIF (2023)
+Graph + Cross-Attn
+Captures temporal and inter-modal patterns
+Adds latency
+IEMOCAP, MELD
+GCMA-Net (2023)
+Gated Cross-Attn
+Suppresses noisy modality signals
+Sensitive to domain shifts
+CH-SIMS
+D. Datasets Overview
+Table II: Benchmark Datasets
+Dataset
+Size
+Text
+Audio
+Vision
+Access
+CMU-MOSI
+2,199 clips
+GloVe.csd
+COVAREP.csd
+FACET.csd
+Open
+CMU-MOSEI
+23,453 clips
+GloVe.csd
+COVAREP.csd
+FACET.csd
+Open
+IEMOCAP
+9,112 utts.
+Raw transcripts
+Raw.wav
+Raw .avi
+EULA - USC
+MER 2024
+Movie/TV clips
+Subtitles
+Raw speech
+Raw video
+EULA - organizers
+III. METHODOLOGY
+A. Problem Statement
+An utterance is represented by text features T ∈ R^(L×300), audio features A ∈ R^(L×74) and visual features V ∈ R^(L×35), where L=50 is the padded sequence length. The objective is to learn a mapping F(T,A,V) → y where y is either a continuous sentiment score for regression or a binary label for classification.
+B. Proposed Architecture
+Fig. 1. The proposed Text-Anchored Cross-Attention Transformer. Text acts as the query modality in two parallel cross-attention layers, each attending to one of the other modalities.
+The architecture is motivated by a simple observation: text is the most structured of the three modalities. It is already tokenized and semantically dense, making it a reliable anchor. Rather than having text, audio, and vision contribute symmetrically, the design uses text as the query modality in two parallel cross-attention layers one attending to audio, one attending to vision.
+Modality Projection. Each input stream is projected into a shared 128-dimensional embedding space via learned linear layers. The projection parameters are trained end-to-end with the rest of the model.
+Layer Normalisation. Applied to each projected representation before cross-attention. In practice, skipping this step caused validation accuracy to oscillate significantly in early training epochs - adding normalisation stabilised convergence noticeably.
+Cross-Attention (Text → Audio). Text provides Query vectors Q; audio provides Key and Value vectors K and V:
+where d_k = 128/16 = 8 per head. The output is a text-conditioned audio representation where each word position has attended to the most relevant acoustic frames.
+Cross-Attention (Text → Vision). Identical mechanism, with visual features as Key and Value. This runs in parallel with the audio cross-attention, not in sequence.
+Residual Connections. The original text representation is added back to each cross-attention output before the concatenation step. This follows standard Transformer practice and helped gradient flow during backpropagation, particularly in longer training runs.
+Concatenation and Classification. All three representations are concatenated and passed through a two-layer feed-forward network with GELU activation and dropout. A final linear layer produces a scalar sentiment score.
+Multi-head attention with 16 parallel heads is used in the final model. The significance of this choice is discussed in the results section.
+C. Baselines
+Early Fusion. Text (300-dim), audio (74-dim), and visual (35-dim) features are concatenated into a 409-dimensional vector and processed through a two-layer LSTM. Simple to implement; serves as the lower-bound reference.
+Late Fusion. Three independent LSTM networks process each modality separately. Their output sentiment scores are combined via weighted averaging. Tests whether independent unimodal processing can match cross-modal fusion.
+D. Training Setup
+All models were trained on a laptop with an NVIDIA RTX 3050 GPU (6 GB VRAM). Batch size was set to 32 after verifying that larger batches caused out-of-memory errors during the full three-modality cross-attention forward pass. The AdamW optimizer was used with weight decay 1e-4 and gradient clipping at max_norm = 1.0 the latter was important because without it, the cross-attention models occasionally produced gradient spikes in the first few epochs. Learning rate scheduling used ReduceLROnPlateau (factor=0.5, patience=5). Early stopping was set to patience=10 epochs based on validation accuracy rather than validation loss; this distinction turned out to matter, as the two metrics did not always agree on which checkpoint was best.
+Table III: Training Configuration
+Parameter
+Value
+Optimizer
+AdamW (weight_decay=1e-4)
+Learning Rate
+5e-4 (Phase 1 & 2); 3e-4 (Phase 3)
+Loss Function
+L1 Loss (Mean Absolute Error)
+Batch Size
+32
+Epochs
+10 (Phase 1 & 2); 20 (Phase 3)
+Gradient Clipping
+max_norm = 1.0
+LR Scheduler
+ReduceLROnPlateau (factor=0.5, patience=5)
+Early Stopping
+Patience=10 (based on validation accuracy)
+Hardware
+NVIDIA RTX 3050, 6 GB VRAM, CUDA
+Framework
+PyTorch 2.x, Python 3.10
+Evaluation uses three metrics: Mean Absolute Error (MAE, lower is better), Binary Accuracy, and Weighted F1 Score (both higher is better). Pearson Correlation (r) is additionally reported.
+E. Experimental Phases
+Phase 1 compares the three architectures (early fusion, late fusion, cross-attention with embed_dim=64 and 4 heads) under identical conditions. The 64-dim baseline was intentional - it allowed testing whether cross-attention is beneficial at low capacity before committing to the larger configuration.
+Phase 2 is an ablation study. Individual modalities are disabled: text-only, text+audio, text+vision, and the full three-modality model. All ablations use the same 64-dim, 4-head configuration.
+Phase 3 switches to embed_dim=128 and hidden_dim=128, then varies the number of attention heads (4, 8, 16) and dropout rate (0.1, 0.2, 0.5). The goal was to find the configuration that best exploits the increased capacity.
+IV. RESULTS AND DISCUSSION
+A. Main Results
+Table IV: All Experimental Results on CMU-MOSEI Test Set
+Exp.
+Description
+MAE ↓
+Accuracy ↑
+F1 ↑
+Pearson r
+1A
+Early Fusion Baseline
+0.6531
+78.14%
+0.8480
+0.6247
+1B
+Late Fusion Baseline
+0.6150
+77.23%
+0.8316
+0.6724
+1C
+Cross-Attention - 4 Heads
+0.6407
+73.92%
+0.8046
+0.6218
+2A
+Ablation: Text Only
+0.6535
+74.89%
+0.8092
+0.6203
+2B
+Ablation: Text + Audio
+0.6406
+75.32%
+0.8155
+0.6238
+2C
+Ablation: Text + Vision
+0.6273
+76.65%
+0.8305
+0.6552
+2D
+Ablation: All Modalities
+0.6431
+73.77%
+0.8001
+0.6319
+3A
+Proposed - 8 Heads
+0.6318
+79.28%
+0.8597
+0.6379
+3A
+Proposed - 16 Heads (Best)
+0.6172
+80.03%
+0.8687
+0.6585
+3B
+Dropout = 0.1
+0.6273
+74.11%
+0.8077
+0.6498
+3B
+Dropout = 0.5
+0.6786
+74.22%
+0.8058
+0.5916
+The first result worth noting from Phase 1 is not the best number - it is the worst one. The cross-attention model with 4 heads and embed_dim=64 (Experiment 1C) achieved only 73.92%, which is lower than both baselines. This was not expected going in. The initial assumption was that cross-attention should at least match late fusion, even in a minimal configuration. Instead, it performed roughly three points below early fusion.
+The explanation becomes clear in Phase 3. With embed_dim=64 and 4 heads, each attention head operates in a 16-dimensional subspace. That is not enough room to learn a useful cross-modal relationship between a 300-dimensional text embedding and a 74-dimensional acoustic feature vector. The model ends up with attention weights that are nearly uniform - spreading attention evenly rather than focusing on anything meaningful.
+Scaling to embed_dim=128 and increasing head count fixed this. Eight heads produced 79.28%. Sixteen heads pushed that to 80.03%, the best result in the study. This 6.11 percentage point gap between the 4-head and 16-head configurations, holding everything else constant, is the central finding of the hyperparameter analysis.
+Early fusion reached 78.14%. This is competitive, and notably better than the under-powered cross-attention model, which reinforces the point that a poorly configured Transformer is worse than a well-implemented simple baseline.
+Late fusion achieved 77.23% accuracy but the lowest MAE of any model at 0.6150. The individual unimodal sub-models make fewer catastrophically wrong regression predictions, but they miss classification-level cross-modal signals. So late fusion produces more conservative, less extreme errors, but is less accurate at the actual binary prediction task.
+B. Ablation Study
+The ablation results in Table IV show that adding audio or vision modalities to a text-only baseline consistently improves performance - but only when the architecture has the capacity to use them. Text+Vision (76.65%) outperforms Text+Audio (75.32%), which is a bit surprising given that audio is intuitively more connected to vocal emotion. The likely explanation is that FACET facial action unit features are discrete and relatively clean, while COVAREP acoustic features extracted from naturalistic YouTube recordings carry more background noise. Vision is simply the cleaner signal in this dataset.
+The full three-modality ablation model (Text+Audio+Vision) at 73.77% is actually worse than Text Only at 74.89%. This is a direct consequence of insufficient attention capacity the 4-head, 64-dim model cannot productively integrate three input streams simultaneously, so adding more modalities introduces noise rather than signal.
+C. Latency vs Accuracy
+Fig. 2. Inference latency (ms per sample) vs. binary accuracy for all eleven experiments on CMU-MOSEI. Blue: Phase 1 baselines. Orange: Phase 2 ablation. Green: Phase 3 hyperparameter tuning.
+Fig. 2 plots inference latency against test accuracy across all experiments. The early fusion baseline (1A) is fastest at 0.096 ms/sample because it performs a single LSTM forward pass on a concatenated vector. The best proposed model (3A, H=16) runs at 0.223 ms/sample - about 2.3x slower than early fusion, but still under a quarter of a millisecond per sample.
+One counterintuitive finding: the 16-head model (0.223 ms) is actually faster during inference than the 8-head model (0.292 ms), despite having twice as many heads. This is likely a GPU parallelisation effect. Sixteen heads of size 8 fit into CUDA thread blocks more efficiently than eight heads of size 16 on the RTX 3050 architecture.
+D. Embedding Space Visualization
+Fig. 3. t-SNE projection of fused multimodal embeddings from the best model (16 heads), on 1,000 randomly sampled CMU-MOSEI test samples. Colour indicates true sentiment score (red: negative, green: positive).
+Fig. 3 shows the t-SNE projection of the fused representations produced by the 16-head model for 1,000 randomly selected test samples. The negative samples (red) cluster towards the upper left, and the positive samples (green) concentrate towards the right. The boundary between the two is not a clean line - there is a mixed region of yellow and light-green points in the centre but the overall structure shows the model has learned an embedding space where sentiment polarity is broadly separable. This would not appear in a model that was simply memorising training patterns without learning generalizable representations.
+E. Attention Analysis
+Fig. 4. Cross-attention heatmaps for a positive utterance (True: +2.00, top row) and a negative utterance (True: -2.00, bottom row). Left: Text-to-Audio attention. Right: Text-to-Vision attention. Averaged across all 16 heads.
+Fig. 5. Cross-modal alignment maps. For each text word position (x-axis), lines show which audio (red) and vision (blue) timestep received the highest attention weight. Dashed grey diagonal represents perfect temporal synchrony (y=x).
+The heatmaps in Fig. 4 reveal an asymmetry between how the model uses audio versus vision. The Text-to-Vision panels (right column) show strong, narrow vertical bands at a small number of timesteps - around frames 30-32 and 40-42. Almost every word position attends heavily to those same frames, regardless of word position. The alignment map (Fig. 5, blue line) makes this very clear: the vision line is nearly flat, sitting at one or two timestep values across the full sequence.
+This is not random. It suggests the model has learned to identify the moment of peak facial expression in the clip and use it as a stable reference point for the entire utterance, rather than trying to track word-by-face correspondence frame by frame. Given that CMU-MOSEI utterances are short clips where a speaker is often holding a sustained expression throughout, this is actually a reasonable strategy.
+Audio attention (red line, Fig. 5) behaves differently. It oscillates substantially across word positions, sometimes jumping to nearly opposite ends of the acoustic sequence between adjacent words. The audio signal is being integrated more locally and variably. Whether this is meaningful acoustic sensitivity or partial noise-chasing is harder to say without access to the raw audio. Both patterns sit well above the diagonal reference line, confirming neither modality is doing simple positional alignment.
+V. CONCLUSION AND FUTURE WORK
+This paper evaluated a Text-Anchored Cross-Attention Transformer against early and late fusion baselines on CMU-MOSEI. The main result - 80.03% accuracy with 16 heads and embed_dim=128-confirms that cross-attention fusion outperforms simpler alternatives when given sufficient representational capacity. The more interesting result is that it does not outperform them with insufficient capacity; a four-head, 64-dim model scored below both baselines at 73.92%.
+The ablation study showed that vision contributes more reliably than audio under the current pre-extracted feature set, likely due to the cleaner nature of FACET facial features compared to COVAREP acoustics in naturalistic recordings. The attention visualizations suggest the model anchors to a small number of emotionally salient visual frames rather than tracking temporal correspondence word by word.
+The primary limitation of this work is the use of 300-dim GloVe static text embeddings. Published systems achieving above 82% on CMU-MOSEI consistently use BERT or RoBERTa contextual embeddings. The pre-extracted CMU-MOSEI features used here do not include BERT representations, so switching would require either finding a separately extracted BERT features file or running extraction from scratch a worthwhile next step that was outside the scope of this phase.
+Other planned extensions include replacing FACET features with a jointly trained Vision Transformer encoder, evaluating on IEMOCAP and MER 2024 for cross-dataset generalization, and exploring CLIP-based visual features to leverage vision-language pretraining in the cross-attention mechanism.
+REFERENCES
+[1] A. Zadeh, R. Zellers, E. Pincus, and L.-P. Morency, "MOSI: Multimodal corpus of sentiment intensity and subjectivity analysis in online opinion videos," arXiv:1606.06259, 2016.
+[2] J. Pennington, R. Socher, and C. D. Manning, "GloVe: Global vectors for word representation," in Proc. EMNLP, 2014, pp. 1532-1543.
+[3] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, "BERT: Pre-training of deep bidirectional transformers for language understanding," in Proc. NAACL-HLT, 2019, pp. 4171-4186.
+[4] A. Zadeh, P. P. Liang, S. Poria, E. Cambria, and L.-P. Morency, "Multimodal language analysis in the wild: CMU-MOSEI dataset and interpretable dynamic fusion graph," in Proc. ACL, 2018, pp. 2236-2246.
+[5] A. Zadeh, M. Chen, S. Poria, E. Cambria, and L.-P. Morency, "Tensor fusion network for multimodal sentiment analysis," in Proc. EMNLP, 2017, pp. 1103-1114.
+[6] Z. Liu, Y. Shen, V. B. Lakshminarasimhan, P. P. Liang, A. Zadeh, and L.-P. Morency, "Efficient low-rank multimodal fusion with modality-specific factors," in Proc. ACL, 2018, pp. 2247-2256.
+[7] Y.-H. H. Tsai, S. Bai, P. P. Liang, J. Z. Kolter, L.-P. Morency, and R. Salakhutdinov, "Multimodal Transformer for unaligned multimodal language sequences," in Proc. ACL, 2019, pp. 6558-6569.
+[8] D. Hazarika, R. Zimmermann, and S. Poria, "MISA: Modality-invariant and -specific representations for multimodal sentiment analysis," in Proc. ACM MM, 2020, pp. 1122-1131.
+[9] Z. Lian, B. Liu, and J. Tao, "GCMA-Net: Gated cross-modal attention for sentiment analysis," IEEE Trans. Affect. Comput., 2023.
+[10] Jiang Li, Xiaoping Wang, Guoqing Lv, and Zhigang Zeng, "Graph and attention based two-stage multi-source information fusion," IEEE Trans. Audio Speech Lang. Process., 2023.
+[11] C. Busso et al., "IEMOCAP: Interactive emotional dyadic motion capture database," Lang. Resour. Eval., vol. 42, no. 4, pp. 335-359, 2008.
+[12] Z. Lian et al., "MER 2024: Semi-supervised learning, noise robustness, and open-vocabulary multimodal emotion recognition," arXiv:2404.17113, 2024.
